@@ -5,20 +5,19 @@ import libs.errs.UnitResult;
 import lombok.AllArgsConstructor;
 import lombok.val;
 import microarch.delivery.core.application.command.CreateOrderCommand;
-import microarch.delivery.core.domain.model.Location;
 import microarch.delivery.core.domain.model.Volume;
 import microarch.delivery.core.domain.model.order.Order;
+import microarch.delivery.core.ports.GeoService;
 import microarch.delivery.core.ports.OrderRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 @AllArgsConstructor
 public class CreateOrderHandler {
 
     private final OrderRepository orderRepository;
+    private final GeoService geoService;
 
     @Transactional
     public UnitResult<Error> handle(final CreateOrderCommand command) {
@@ -27,9 +26,12 @@ public class CreateOrderHandler {
             return UnitResult.failure(volume.getError());
         }
 
-        val random = ThreadLocalRandom.current();
-        val location = Location.create(random.nextInt(1, 11), random.nextInt(1, 11)).getValueOrThrow();
-        val order = Order.create(command.orderId(), location, volume.getValue());
+        val location = geoService.getGeolocation(command.street());
+        if (location.isFailure()) {
+            return UnitResult.failure(location.getError());
+        }
+
+        val order = Order.create(command.orderId(), location.getValue(), volume.getValue());
 
         if (order.isFailure()) {
             return UnitResult.failure(order.getError());
