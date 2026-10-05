@@ -49,7 +49,7 @@ class OrderTest {
     void allowsTransitionFromCreatedToAssigned() {
         val order = newOrder();
 
-        val result = order.changeStatus(OrderStatus.Assigned);
+        val result = order.markAsAssigned();
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.Assigned);
@@ -58,9 +58,9 @@ class OrderTest {
     @Test
     void allowsTransitionFromAssignedToCompleted() {
         val order = newOrder();
-        order.changeStatus(OrderStatus.Assigned);
+        order.markAsAssigned();
 
-        val result = order.changeStatus(OrderStatus.Completed);
+        val result = order.markAsCompleted();
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.Completed);
@@ -70,31 +70,21 @@ class OrderTest {
     void rejectsTransitionFromCreatedStraightToCompleted() {
         val order = newOrder();
 
-        val result = order.changeStatus(OrderStatus.Completed);
+        val result = order.markAsCompleted();
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo("order.transition.not.allowed");
     }
 
     @Test
-    void rejectsTransitionBackFromAssignedToCreated() {
+    void rejectsSecondAssignment() {
         val order = newOrder();
-        order.changeStatus(OrderStatus.Assigned);
+        order.markAsAssigned();
 
-        val result = order.changeStatus(OrderStatus.Created);
+        val result = order.markAsAssigned();
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo("order.transition.not.allowed");
-    }
-
-    @Test
-    void rejectsNullTargetStatus() {
-        val order = newOrder();
-
-        val result = order.changeStatus(null);
-
-        assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("object.is.null");
     }
 
     private Order newOrder() {
