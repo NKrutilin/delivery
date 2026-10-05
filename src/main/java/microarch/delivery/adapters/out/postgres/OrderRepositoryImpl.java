@@ -6,6 +6,7 @@ import microarch.delivery.core.domain.model.order.OrderStatus;
 import microarch.delivery.core.ports.OrderRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,5 +34,10 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     public Optional<Order> getAnyInCreatedStatus() {
         return orderJpaRepository.findFirstByStatus(OrderStatus.Created);
+    }
+
+    @Override
+    public List<Order> getAllNotCompleted() {
+        return orderJpaRepository.findAllByStatusIn(List.of(OrderStatus.Created, OrderStatus.Assigned));
     }
 }

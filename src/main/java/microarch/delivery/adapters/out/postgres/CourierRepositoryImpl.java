@@ -5,6 +5,7 @@ import microarch.delivery.core.domain.model.courier.Courier;
 import microarch.delivery.core.ports.CourierRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,5 +28,10 @@ public class CourierRepositoryImpl implements CourierRepository {
     @Override
     public Optional<Courier> findById(final UUID id) {
         return courierJpaRepository.findById(id);
+    }
+
+    @Override
+    public List<Courier> getAllCouriers() {
+        return courierJpaRepository.findAll();
     }
 }
