@@ -1,11 +1,17 @@
 package microarch.delivery.core.domain.model.courier;
 
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import libs.ddd.Aggregate;
 import libs.errs.Error;
 import libs.errs.Guard;
 import libs.errs.Result;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.val;
 import microarch.delivery.Constants;
 import microarch.delivery.core.domain.model.Assignment;
@@ -18,6 +24,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+@Entity
+@Table(name = "courier", indexes = { @Index(name = "courier_name", columnList = "name", unique = true) })
+@NoArgsConstructor(force = true)
 @Getter
 public class Courier extends Aggregate<UUID> {
 
@@ -26,7 +35,9 @@ public class Courier extends Aggregate<UUID> {
 
     private final String name;
     private final Volume maxVolume = Volume.create(MAX_VOLUME).getValueOrThrow();
+    @Transient
     private final List<Assignment> assignments = new ArrayList<>();
+    @Embedded
     private Location location;
 
     private Courier(final String name, final Location location) {
