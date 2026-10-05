@@ -8,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.val;
+import microarch.delivery.Constants;
 
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class Location extends ValueObject<Location> {
 
     public Result<Distance, Error> computeDistance(final Location to) {
         if (to == null) {
-            return Result.failure(Error.of("location.is.null", "Target location must not be null"));
+            return Result.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "Target location must not be null"));
         }
 
         return Distance.create(Math.abs(to.x - x) + Math.abs(to.y - y));
