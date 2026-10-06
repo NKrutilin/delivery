@@ -29,8 +29,21 @@ public class Distance extends ValueObject<Distance> {
         return Result.success(new Distance(value));
     }
 
+    public boolean isGreaterThan(final Distance other) {
+        return value > other.value;
+    }
+
+    public boolean isLessThan(final Distance other) {
+        return value < other.value;
+    }
+
     @Override
     protected Iterable<Object> equalityComponents() {
         return List.of(value);
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(value);
     }
 }

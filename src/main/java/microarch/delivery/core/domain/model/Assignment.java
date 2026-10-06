@@ -13,6 +13,8 @@ import java.util.UUID;
 @Getter
 public class Assignment extends BaseEntity<UUID> {
 
+    private static final Distance MAX_COMPLETION_DISTANCE = Distance.create(1).getValueOrThrow();
+
     private final UUID orderId;
     private final Volume volume;
     private final Location location;
@@ -53,7 +55,7 @@ public class Assignment extends BaseEntity<UUID> {
 
         val distance = courierLocation.computeDistance(location).getValueOrThrow();
 
-        if (distance.getValue() > 1) {
+        if (distance.isGreaterThan(MAX_COMPLETION_DISTANCE)) {
             return Result.failure(Error.of("out.of.completion.zone",
                     "Courier is too far from the order location to complete the assignment"));
         }

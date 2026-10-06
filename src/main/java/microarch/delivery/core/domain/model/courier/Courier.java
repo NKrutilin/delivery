@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.val;
 import microarch.delivery.Constants;
 import microarch.delivery.core.domain.model.Assignment;
+import microarch.delivery.core.domain.model.Distance;
 import microarch.delivery.core.domain.model.Location;
 import microarch.delivery.core.domain.model.Volume;
 import microarch.delivery.core.domain.model.order.Order;
@@ -21,11 +22,13 @@ import java.util.UUID;
 @Getter
 public class Courier extends Aggregate<UUID> {
 
-    static final int MAX_VOLUME = 20;
+    static final Volume MAX_VOLUME = Volume.create(20).getValueOrThrow();
     static final int STEP_SIZE = 1;
 
+    private static final Distance COMPLETION_DISTANCE = Distance.create(STEP_SIZE).getValueOrThrow();
+
     private final String name;
-    private final Volume maxVolume = Volume.create(MAX_VOLUME).getValueOrThrow();
+    private final Volume maxVolume = MAX_VOLUME;
     private final List<Assignment> assignments = new ArrayList<>();
     private Location location;
 
@@ -58,12 +61,11 @@ public class Courier extends Aggregate<UUID> {
             return Result.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "orderVolume must not be null"));
         }
 
-        val plannedVolume = assignments.stream().map(assignment -> assignment.getVolume().getValue())
-                .reduce(orderVolume.getValue(), Integer::sum);
+        val plannedVolume = assignments.stream().map(Assignment::getVolume).reduce(orderVolume, Volume::add);
 
-        if (plannedVolume > maxVolume.getValue()) {
+        if (plannedVolume.isGreaterThan(maxVolume)) {
             return Result.failure(Error.of("courier.volume.limit.exceeded",
-                    "Planned volume %d exceeds courier limit %d".formatted(plannedVolume, MAX_VOLUME)));
+                    "Planned volume %s exceeds courier limit %s".formatted(plannedVolume, maxVolume)));
         }
 
         return Result.success(true);
@@ -104,7 +106,7 @@ public class Courier extends Aggregate<UUID> {
         }
 
         val distance = assignment.getLocation().computeDistance(location).getValueOrThrow();
-        if (distance.getValue() > STEP_SIZE) {
+        if (distance.isGreaterThan(COMPLETION_DISTANCE)) {
             return Result.failure(Error.of("courier.far.from.order", "Courier is too far from order " + orderId));
         }
 
