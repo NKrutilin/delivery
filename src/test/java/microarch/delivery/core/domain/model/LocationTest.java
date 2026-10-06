@@ -99,6 +99,6 @@ class LocationTest {
         val result = from.computeDistance(null);
 
         assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("location.is.null");
+        assertThat(result.getError().getCode()).isEqualTo("object.is.null");
     }
 }
