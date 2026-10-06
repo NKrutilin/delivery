@@ -1,7 +1,10 @@
 package microarch.delivery.core.domain.model.courier;
 
+import libs.errs.Error;
+import libs.errs.Result;
 import lombok.val;
 import microarch.delivery.core.domain.model.Location;
+import microarch.delivery.core.domain.model.Status;
 import microarch.delivery.core.domain.model.Volume;
 import microarch.delivery.core.domain.model.order.Order;
 import org.junit.jupiter.api.Test;
@@ -63,7 +66,7 @@ class CourierTest {
     @Test
     void reportsWhenPlannedVolumeExceedsLimit() {
         val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
-        courier.takeOrder(newOrder(1, 15));
+        takeOrder(courier, newOrder(1, 15));
 
         val result = courier.canTakeOneMoreOrder(Volume.create(10).getValue());
 
@@ -72,11 +75,25 @@ class CourierTest {
     }
 
     @Test
+    void completedAssignmentsDoNotConsumeVolume() {
+        val courier = Courier.create("Ivan", Location.create(5, 5).getValue()).getValue();
+        val order = newOrderAt(15, 5, 5);
+        takeOrder(courier, order);
+        courier.completeOrder(order.getId());
+
+        val result = courier.canTakeOneMoreOrder(Volume.create(20).getValue());
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(courier.getAssignments()).hasSize(1);
+        assertThat(courier.getAssignments().get(0).getStatus()).isEqualTo(Status.Completed);
+    }
+
+    @Test
     void takesOrder() {
         val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
         val order = newOrder(2, 5);
 
-        val result = courier.takeOrder(order);
+        val result = takeOrder(courier, order);
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(courier.getAssignments()).hasSize(1);
@@ -84,10 +101,30 @@ class CourierTest {
     }
 
     @Test
-    void rejectsNullOrder() {
+    void rejectsNullOrderId() {
         val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
 
-        val result = courier.takeOrder(null);
+        val result = courier.takeOrder(null, Volume.create(1).getValue(), Location.create(1, 1).getValue());
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.getError().getCode()).isEqualTo("value.is.required");
+    }
+
+    @Test
+    void rejectsEmptyOrderId() {
+        val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
+
+        val result = courier.takeOrder(new UUID(0, 0), Volume.create(1).getValue(), Location.create(1, 1).getValue());
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.getError().getCode()).isEqualTo("value.is.required");
+    }
+
+    @Test
+    void rejectsNullVolumeOnTakeOrder() {
+        val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
+
+        val result = courier.takeOrder(UUID.randomUUID(), null, Location.create(1, 1).getValue());
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo("object.is.null");
@@ -97,9 +134,9 @@ class CourierTest {
     void doesNotTakeSameOrderTwice() {
         val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
         val order = newOrder(2, 5);
-        courier.takeOrder(order);
+        takeOrder(courier, order);
 
-        val secondAttempt = courier.takeOrder(order);
+        val secondAttempt = takeOrder(courier, order);
 
         assertThat(secondAttempt.isFailure()).isTrue();
         assertThat(secondAttempt.getError().getCode()).isEqualTo("courier.order.already.assigned");
@@ -108,9 +145,9 @@ class CourierTest {
     @Test
     void doesNotTakeOrderWhenVolumeLimitIsReached() {
         val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
-        courier.takeOrder(newOrder(1, 15));
+        takeOrder(courier, newOrder(1, 15));
 
-        val result = courier.takeOrder(newOrder(2, 10));
+        val result = takeOrder(courier, newOrder(2, 10));
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo("courier.volume.limit.exceeded");
@@ -121,19 +158,20 @@ class CourierTest {
         val courier = Courier.create("Ivan", Location.create(5, 5).getValue()).getValue();
         val order = Order.create(UUID.randomUUID(), Location.create(5, 5).getValue(), Volume.create(5).getValue())
                 .getValue();
-        courier.takeOrder(order);
+        takeOrder(courier, order);
 
         val result = courier.completeOrder(order.getId());
 
         assertThat(result.isSuccess()).isTrue();
-        assertThat(courier.getAssignments()).isEmpty();
+        assertThat(courier.getAssignments()).hasSize(1);
+        assertThat(courier.getAssignments().get(0).getStatus()).isEqualTo(Status.Completed);
     }
 
     @Test
     void doesNotCompleteOrderWhenCourierIsFarAway() {
         val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
         val order = newOrder(2, 5);
-        courier.takeOrder(order);
+        takeOrder(courier, order);
 
         val result = courier.completeOrder(order.getId());
 
@@ -163,6 +201,27 @@ class CourierTest {
     }
 
     @Test
+    void changeLocationMovesCourier() {
+        val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
+
+        val result = courier.changeLocation(Location.create(7, 8).getValue());
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(courier.getLocation()).isEqualTo(Location.create(7, 8).getValue());
+    }
+
+    @Test
+    void rejectsNullLocationInChangeLocation() {
+        val courier = Courier.create("Ivan", Location.create(1, 1).getValue()).getValue();
+
+        val result = courier.changeLocation(null);
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.getError().getCode()).isEqualTo("object.is.null");
+        assertThat(courier.getLocation()).isEqualTo(Location.create(1, 1).getValue());
+    }
+
+    @Test
     void movesCourierAroundTheBoard() {
         val courier = Courier.create("Ivan", Location.create(5, 5).getValue()).getValue();
 
@@ -184,5 +243,14 @@ class CourierTest {
     private Order newOrder(final long number, final int volume) {
         return Order.create(UUID.randomUUID(), Location.create(9, 9).getValue(), Volume.create(volume).getValue())
                 .getValue();
+    }
+
+    private Order newOrderAt(final int volume, final int x, final int y) {
+        return Order.create(UUID.randomUUID(), Location.create(x, y).getValue(), Volume.create(volume).getValue())
+                .getValue();
+    }
+
+    private Result<Courier, Error> takeOrder(final Courier courier, final Order order) {
+        return courier.takeOrder(order.getId(), order.getVolume(), order.getLocation());
     }
 }

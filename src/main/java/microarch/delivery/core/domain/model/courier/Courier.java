@@ -8,11 +8,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.val;
 import microarch.delivery.Constants;
-import microarch.delivery.core.domain.model.Assignment;
 import microarch.delivery.core.domain.model.Distance;
 import microarch.delivery.core.domain.model.Location;
+import microarch.delivery.core.domain.model.Status;
 import microarch.delivery.core.domain.model.Volume;
-import microarch.delivery.core.domain.model.order.Order;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,7 +60,8 @@ public class Courier extends Aggregate<UUID> {
             return Result.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "orderVolume must not be null"));
         }
 
-        val plannedVolume = assignments.stream().map(Assignment::getVolume).reduce(orderVolume, Volume::add);
+        val plannedVolume = assignments.stream().filter(assignment -> assignment.getStatus() == Status.Assigned)
+                .map(Assignment::getVolume).reduce(orderVolume, Volume::add);
 
         if (plannedVolume.isGreaterThan(maxVolume)) {
             return Result.failure(Error.of("courier.volume.limit.exceeded",
@@ -71,23 +71,26 @@ public class Courier extends Aggregate<UUID> {
         return Result.success(true);
     }
 
-    public Result<Courier, Error> takeOrder(final Order order) {
-        if (order == null) {
-            return Result.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "order must not be null"));
+    public Result<Courier, Error> takeOrder(final UUID orderId, final Volume volume, final Location location) {
+        val error = Guard.combine(Guard.againstNullOrEmpty(orderId, "orderId"),
+                (volume == null) ? Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "volume must not be null") : null,
+                (location == null) ? Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "location must not be null") : null);
+
+        if (error != null) {
+            return Result.failure(error);
         }
 
-        val alreadyTaken = assignments.stream().anyMatch(assignment -> assignment.getOrderId().equals(order.getId()));
+        val alreadyTaken = assignments.stream().anyMatch(assignment -> assignment.getOrderId().equals(orderId));
         if (alreadyTaken) {
-            return Result
-                    .failure(Error.of("courier.order.already.assigned", "Courier already has order " + order.getId()));
+            return Result.failure(Error.of("courier.order.already.assigned", "Courier already has order " + orderId));
         }
 
-        val capacityCheck = canTakeOneMoreOrder(order.getVolume());
+        val capacityCheck = canTakeOneMoreOrder(volume);
         if (capacityCheck.isFailure()) {
             return Result.failure(capacityCheck.getError());
         }
 
-        val assignment = Assignment.create(order.getId(), order.getVolume(), order.getLocation()).getValueOrThrow();
+        val assignment = Assignment.create(orderId, volume, location).getValueOrThrow();
         assignments.add(assignment);
 
         return Result.success(this);
@@ -115,7 +118,15 @@ public class Courier extends Aggregate<UUID> {
             return Result.failure(completion.getError());
         }
 
-        assignments.remove(assignment);
+        return Result.success(this);
+    }
+
+    public Result<Courier, Error> changeLocation(final Location newLocation) {
+        if (newLocation == null) {
+            return Result.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "newLocation must not be null"));
+        }
+
+        location = newLocation;
         return Result.success(this);
     }
 
