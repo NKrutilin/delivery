@@ -1,10 +1,16 @@
 package microarch.delivery.core.domain.model.courier;
 
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import libs.ddd.BaseEntity;
 import libs.errs.Error;
 import libs.errs.Guard;
 import libs.errs.Result;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.val;
 import microarch.delivery.Constants;
 import microarch.delivery.core.domain.model.Distance;
@@ -14,14 +20,20 @@ import microarch.delivery.core.domain.model.Volume;
 
 import java.util.UUID;
 
+@Entity
+@Table(name = "assignment")
+@NoArgsConstructor(force = true)
 @Getter
 public class Assignment extends BaseEntity<UUID> {
 
     private static final Distance MAX_COMPLETION_DISTANCE = Distance.create(1).getValueOrThrow();
 
     private final UUID orderId;
+    @Embedded
     private final Volume volume;
+    @Embedded
     private final Location location;
+    @Enumerated(EnumType.STRING)
     private Status status;
 
     private Assignment(final UUID id, final UUID orderId, final Volume volume, final Location location,

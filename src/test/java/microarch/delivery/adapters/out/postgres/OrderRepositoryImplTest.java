@@ -9,10 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Sort;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,30 +82,8 @@ class OrderRepositoryImplTest extends BaseJpaTest {
         assertThat(orderRepository.getAnyInCreatedStatus()).isEmpty();
     }
 
-    @Test
-    void returnsPagedAssignedOrders() {
-        val assignedIdSet = Set.copyOf(orderJpaRepository.saveAllAndFlush(List.of(newAssigned(), newAssigned()))
-                .stream().map(Order::getId).toList());
-        orderJpaRepository.saveAndFlush(newOrder());
-
-        val expectedIds = orderJpaRepository.findAll(Sort.by("id")).stream().map(Order::getId)
-                .filter(assignedIdSet::contains).toList();
-
-        val page = orderRepository.getAllInAssignedStatus(0, 2);
-
-        assertThat(page.getContent()).extracting(Order::getId).containsExactlyElementsOf(expectedIds);
-        assertThat(page.getContent()).extracting(Order::getStatus).containsOnly(OrderStatus.Assigned);
-        assertThat(page.getTotalElements()).isEqualTo(2);
-    }
-
     private Order newOrder() {
         return Order.create(UUID.randomUUID(), Location.create(5, 5).getValue(), Volume.create(10).getValue())
                 .getValue();
-    }
-
-    private Order newAssigned() {
-        val order = newOrder();
-        order.markAsAssigned();
-        return order;
     }
 }

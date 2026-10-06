@@ -2,14 +2,15 @@ package microarch.delivery.adapters.out.postgres;
 
 import lombok.val;
 import microarch.delivery.core.domain.model.Location;
+import microarch.delivery.core.domain.model.Status;
+import microarch.delivery.core.domain.model.Volume;
 import microarch.delivery.core.domain.model.courier.Courier;
+import microarch.delivery.core.domain.model.order.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Sort;
 
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,21 +66,22 @@ class CourierRepositoryImplTest extends BaseJpaTest {
     }
 
     @Test
-    void returnsPagedCouriersSortedById() {
-        courierJpaRepository
-                .saveAllAndFlush(List.of(Courier.create("courier-1", Location.create(1, 1).getValue()).getValue(),
-                        Courier.create("courier-2", Location.create(2, 2).getValue()).getValue(),
-                        Courier.create("courier-3", Location.create(3, 3).getValue()).getValue()));
+    void restoresCourierAssignmentsAfterContextClear() {
+        val courier = Courier.create("courier-assignments", Location.create(3, 3).getValue()).getValue();
+        val order = Order.create(UUID.randomUUID(), Location.create(3, 3).getValue(), Volume.create(5).getValue())
+                .getValue();
+        courier.takeOrder(order.getId(), order.getVolume(), order.getLocation());
 
-        val sortedIds = courierJpaRepository.findAll(Sort.by("id")).stream().map(Courier::getId).toList();
+        courierRepository.create(courier);
+        courierJpaRepository.flush();
+        entityManager.clear();
 
-        val firstPage = courierRepository.getAll(0, 2);
-
-        assertThat(firstPage.getTotalElements()).isEqualTo(3);
-        assertThat(firstPage.getContent()).extracting(Courier::getId).containsExactly(sortedIds.get(0),
-                sortedIds.get(1));
-
-        val secondPage = courierRepository.getAll(1, 2);
-        assertThat(secondPage.getContent()).extracting(Courier::getId).containsExactly(sortedIds.get(2));
+        val found = courierJpaRepository.findById(courier.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getAssignments()).hasSize(1);
+        assertThat(found.get().getAssignments().get(0).getOrderId()).isEqualTo(order.getId());
+        assertThat(found.get().getAssignments().get(0).getStatus()).isEqualTo(Status.Assigned);
+        assertThat(found.get().getAssignments().get(0).getVolume()).isEqualTo(order.getVolume());
+        assertThat(found.get().getAssignments().get(0).getLocation()).isEqualTo(order.getLocation());
     }
 }

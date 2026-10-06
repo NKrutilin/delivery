@@ -1,10 +1,13 @@
 package microarch.delivery.core.domain.model.courier;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import libs.ddd.Aggregate;
 import libs.errs.Error;
 import libs.errs.Guard;
@@ -37,7 +40,8 @@ public class Courier extends Aggregate<UUID> {
 
     private final String name;
     private final Volume maxVolume = MAX_VOLUME;
-    @Transient
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "courier_id", nullable = false)
     private final List<Assignment> assignments = new ArrayList<>();
     @Embedded
     private Location location;

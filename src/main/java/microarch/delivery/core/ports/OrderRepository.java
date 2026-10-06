@@ -1,7 +1,6 @@
 package microarch.delivery.core.ports;
 
 import microarch.delivery.core.domain.model.order.Order;
-import org.springframework.data.domain.Page;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +14,4 @@ public interface OrderRepository {
     Optional<Order> findById(UUID id);
 
     Optional<Order> getAnyInCreatedStatus();
-
-    Page<Order> getAllInAssignedStatus(int page, int size);
 }
