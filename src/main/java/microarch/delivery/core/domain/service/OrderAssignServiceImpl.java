@@ -4,6 +4,7 @@ import libs.errs.Error;
 import libs.errs.Result;
 import lombok.val;
 import microarch.delivery.Constants;
+import microarch.delivery.core.domain.model.Distance;
 import microarch.delivery.core.domain.model.courier.Courier;
 import microarch.delivery.core.domain.model.order.Order;
 import microarch.delivery.core.domain.model.order.OrderStatus;
@@ -28,7 +29,7 @@ public class OrderAssignServiceImpl implements OrderAssignService {
         }
 
         Courier nearestCourier = null;
-        int nearestDistance = Integer.MAX_VALUE;
+        Distance nearestDistance = null;
 
         for (val courier : couriers) {
             if (courier.canTakeOneMoreOrder(order.getVolume()).isFailure()) {
@@ -36,9 +37,9 @@ public class OrderAssignServiceImpl implements OrderAssignService {
             }
 
             val distance = courier.getLocation().computeDistance(order.getLocation()).getValueOrThrow();
-            if (distance.getValue() < nearestDistance) {
+            if (nearestDistance == null || distance.isLessThan(nearestDistance)) {
                 nearestCourier = courier;
-                nearestDistance = distance.getValue();
+                nearestDistance = distance;
             }
         }
 
