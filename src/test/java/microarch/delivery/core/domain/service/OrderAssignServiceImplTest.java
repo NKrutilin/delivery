@@ -8,6 +8,7 @@ import microarch.delivery.core.domain.model.order.Order;
 import microarch.delivery.core.domain.model.order.OrderStatus;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +37,7 @@ class OrderAssignServiceImplTest {
     void skipsOverloadedCourierEvenIfItIsCloser() {
         val overloaded = Courier.create("Full", Location.create(2, 2).getValue()).getValue();
         val free = Courier.create("Free", Location.create(9, 9).getValue()).getValue();
-        overloaded.takeOrder(newOrder(Location.create(8, 8).getValue(), 20));
+        takeOrder(overloaded, newOrder(Location.create(8, 8).getValue(), 20));
 
         val order = newOrder(Location.create(1, 1).getValue(), 5);
 
@@ -60,7 +61,7 @@ class OrderAssignServiceImplTest {
     @Test
     void failsWhenEveryCourierIsOverloaded() {
         val full = Courier.create("Full", Location.create(2, 2).getValue()).getValue();
-        full.takeOrder(newOrder(Location.create(3, 3).getValue(), 20));
+        takeOrder(full, newOrder(Location.create(3, 3).getValue(), 20));
 
         val order = newOrder(Location.create(1, 1).getValue(), 5);
 
@@ -102,7 +103,22 @@ class OrderAssignServiceImplTest {
         assertThat(result.getError().getCode()).isEqualTo("object.is.null");
     }
 
+    @Test
+    void rejectsNullCourierElement() {
+        val courier = Courier.create("Ivan", Location.create(2, 2).getValue()).getValue();
+        val order = newOrder(Location.create(1, 1).getValue(), 5);
+
+        val result = service.assign(order, Arrays.asList(courier, null));
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.getError().getCode()).isEqualTo("object.is.null");
+    }
+
     private Order newOrder(final Location location, final int volume) {
         return Order.create(UUID.randomUUID(), location, Volume.create(volume).getValue()).getValue();
+    }
+
+    private void takeOrder(final Courier courier, final Order order) {
+        courier.takeOrder(order.getId(), order.getVolume(), order.getLocation());
     }
 }

@@ -32,6 +32,10 @@ public class OrderAssignServiceImpl implements OrderAssignService {
         Distance nearestDistance = null;
 
         for (val courier : couriers) {
+            if (courier == null) {
+                return Result.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "courier must not be null"));
+            }
+
             if (courier.canTakeOneMoreOrder(order.getVolume()).isFailure()) {
                 continue;
             }
@@ -48,7 +52,7 @@ public class OrderAssignServiceImpl implements OrderAssignService {
                     Error.of("assign.service.no.couriers", "No courier is available for order " + order.getId()));
         }
 
-        val taken = nearestCourier.takeOrder(order);
+        val taken = nearestCourier.takeOrder(order.getId(), order.getVolume(), order.getLocation());
         if (taken.isFailure()) {
             return Result.failure(taken.getError());
         }
