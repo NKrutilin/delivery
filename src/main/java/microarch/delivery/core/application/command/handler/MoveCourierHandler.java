@@ -21,8 +21,9 @@ public class MoveCourierHandler {
 
     @Transactional
     public UnitResult<Error> handle(final MoveCourierCommand command) {
-        if (command.location() == null) {
-            return UnitResult.failure(Error.of(Constants.ERR_CODE_OBJ_IS_NULL, "location must not be null"));
+        val target = Location.create(command.x(), command.y());
+        if (target.isFailure()) {
+            return UnitResult.failure(target.getError());
         }
 
         val courier = courierRepository.findById(command.courierId());
@@ -31,23 +32,12 @@ public class MoveCourierHandler {
                     "Courier " + command.courierId() + " does not exist"));
         }
 
-        val moved = moveUntilArrived(courier.get(), command.location());
+        val moved = moveOneStepTowards(courier.get(), target.getValue());
         if (moved.isFailure()) {
             return moved;
         }
 
         courierRepository.update(courier.get());
-        return UnitResult.success();
-    }
-
-    private UnitResult<Error> moveUntilArrived(final Courier courier, final Location target) {
-        while (courier.getLocation().getX() != target.getX() || courier.getLocation().getY() != target.getY()) {
-            val step = moveOneStepTowards(courier, target);
-            if (step.isFailure()) {
-                return step;
-            }
-        }
-
         return UnitResult.success();
     }
 

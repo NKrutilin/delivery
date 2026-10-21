@@ -16,7 +16,7 @@ public class GetAllCouriersHandler {
     private final CourierRepository courierRepository;
 
     public List<CourierDto> handle(final GetAllCouriersQuery query) {
-        return courierRepository.getAllCouriers().stream()
-                .map(courier -> new CourierDto(courier.getId(), courier.getName(), courier.getLocation())).toList();
+        return courierRepository.getAllCouriers().stream().map(courier -> new CourierDto(courier.getId(),
+                courier.getName(), courier.getLocation().getX(), courier.getLocation().getY())).toList();
     }
 }

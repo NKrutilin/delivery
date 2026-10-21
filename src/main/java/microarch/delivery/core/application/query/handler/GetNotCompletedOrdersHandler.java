@@ -17,6 +17,7 @@ public class GetNotCompletedOrdersHandler {
 
     public List<OrderDto> handle(final GetNotCompletedOrdersQuery query) {
         return orderRepository.getAllNotCompleted().stream()
-                .map(order -> new OrderDto(order.getId(), order.getLocation())).toList();
+                .map(order -> new OrderDto(order.getId(), order.getLocation().getX(), order.getLocation().getY()))
+                .toList();
     }
 }
