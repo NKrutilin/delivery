@@ -28,8 +28,21 @@ public class Volume extends ValueObject<Volume> {
         return Result.success(new Volume(value));
     }
 
+    public Volume add(final Volume other) {
+        return new Volume(value + other.value);
+    }
+
+    public boolean isGreaterThan(final Volume other) {
+        return value > other.value;
+    }
+
     @Override
     protected Iterable<Object> equalityComponents() {
         return List.of(value);
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(value);
     }
 }

@@ -1,6 +1,9 @@
-package microarch.delivery.core.domain.model;
+package microarch.delivery.core.domain.model.courier;
 
 import lombok.val;
+import microarch.delivery.core.domain.model.Location;
+import microarch.delivery.core.domain.model.Status;
+import microarch.delivery.core.domain.model.Volume;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -23,7 +26,15 @@ class AssignmentTest {
         val result = Assignment.create(null, Volume.create(2).getValue(), Location.create(3, 3).getValue());
 
         assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("object.is.null");
+        assertThat(result.getError().getCode()).isEqualTo("value.is.required");
+    }
+
+    @Test
+    void rejectsEmptyOrderId() {
+        val result = Assignment.create(new UUID(0, 0), Volume.create(2).getValue(), Location.create(3, 3).getValue());
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.getError().getCode()).isEqualTo("value.is.required");
     }
 
     @Test
@@ -85,5 +96,27 @@ class AssignmentTest {
 
         assertThat(secondAttempt.isFailure()).isTrue();
         assertThat(secondAttempt.getError().getCode()).isEqualTo("assignment.already.completed");
+    }
+
+    @Test
+    void restoresAssignmentWithExistingId() {
+        val id = UUID.randomUUID();
+        val volume = Volume.create(2).getValue();
+        val location = Location.create(3, 3).getValue();
+
+        val result = Assignment.restore(id, UUID.randomUUID(), volume, location, Status.Completed);
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getValue().getId()).isEqualTo(id);
+        assertThat(result.getValue().getStatus()).isEqualTo(Status.Completed);
+    }
+
+    @Test
+    void rejectsNullIdOnRestore() {
+        val result = Assignment.restore(null, UUID.randomUUID(), Volume.create(2).getValue(),
+                Location.create(3, 3).getValue(), Status.Assigned);
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.getError().getCode()).isEqualTo("value.is.required");
     }
 }
