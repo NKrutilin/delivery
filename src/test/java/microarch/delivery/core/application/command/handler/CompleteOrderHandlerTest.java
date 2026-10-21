@@ -1,6 +1,7 @@
 package microarch.delivery.core.application.command.handler;
 
 import lombok.val;
+import libs.ddd.DomainEventPublisher;
 import microarch.delivery.core.application.command.CompleteOrderCommand;
 import microarch.delivery.core.domain.model.Location;
 import microarch.delivery.core.domain.model.Status;
@@ -13,6 +14,7 @@ import microarch.delivery.core.ports.OrderRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,7 +28,9 @@ class CompleteOrderHandlerTest {
 
     private final CourierRepository courierRepository = mock(CourierRepository.class);
     private final OrderRepository orderRepository = mock(OrderRepository.class);
-    private final CompleteOrderHandler handler = new CompleteOrderHandler(courierRepository, orderRepository);
+    private final DomainEventPublisher domainEventPublisher = mock(DomainEventPublisher.class);
+    private final CompleteOrderHandler handler = new CompleteOrderHandler(courierRepository, orderRepository,
+            domainEventPublisher);
 
     @Test
     @DisplayName("завершает задание курьера и помечает заказ выполненным")
@@ -47,6 +51,7 @@ class CompleteOrderHandlerTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.Completed);
         verify(courierRepository).update(courier);
         verify(orderRepository).update(order);
+        verify(domainEventPublisher).publish(List.of(order));
     }
 
     @Test

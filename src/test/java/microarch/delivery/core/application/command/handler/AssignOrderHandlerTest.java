@@ -1,6 +1,7 @@
 package microarch.delivery.core.application.command.handler;
 
 import lombok.val;
+import libs.ddd.DomainEventPublisher;
 import microarch.delivery.core.application.command.AssignOrderCommand;
 import microarch.delivery.core.domain.model.Location;
 import microarch.delivery.core.domain.model.Volume;
@@ -31,8 +32,9 @@ class AssignOrderHandlerTest {
     private final OrderRepository orderRepository = mock(OrderRepository.class);
     private final CourierRepository courierRepository = mock(CourierRepository.class);
     private final OrderAssignService orderAssignService = mock(OrderAssignService.class);
+    private final DomainEventPublisher domainEventPublisher = mock(DomainEventPublisher.class);
     private final AssignOrderHandler handler = new AssignOrderHandler(orderRepository, courierRepository,
-            orderAssignService);
+            orderAssignService, domainEventPublisher);
 
     @Test
     @DisplayName("ничего не делает, если нет заказов в статусе Created")
@@ -61,6 +63,7 @@ class AssignOrderHandlerTest {
         assertThat(result.isSuccess()).isTrue();
         verify(courierRepository).update(courier);
         verify(orderRepository).update(order);
+        verify(domainEventPublisher).publish(List.of(order));
     }
 
     @Test

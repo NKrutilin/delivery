@@ -1,5 +1,8 @@
 package microarch.delivery.core.application.command.handler;
 
+import java.util.List;
+
+import libs.ddd.DomainEventPublisher;
 import libs.errs.Error;
 import libs.errs.UnitResult;
 import lombok.AllArgsConstructor;
@@ -17,6 +20,7 @@ public class CompleteOrderHandler {
 
     private final CourierRepository courierRepository;
     private final OrderRepository orderRepository;
+    private final DomainEventPublisher domainEventPublisher;
 
     @Transactional
     public UnitResult<Error> handle(final CompleteOrderCommand command) {
@@ -44,6 +48,9 @@ public class CompleteOrderHandler {
 
         courierRepository.update(courier.get());
         orderRepository.update(order.get());
+
+        domainEventPublisher.publish(List.of(order.get()));
+
         return UnitResult.success();
     }
 }
