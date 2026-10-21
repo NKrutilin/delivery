@@ -3,6 +3,8 @@ package microarch.delivery.core.domain.model.order;
 import lombok.val;
 import microarch.delivery.core.domain.model.Location;
 import microarch.delivery.core.domain.model.Volume;
+import microarch.delivery.core.domain.model.order.events.OrderAssignedDomainEvent;
+import microarch.delivery.core.domain.model.order.events.OrderCompletedDomainEvent;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -85,6 +87,39 @@ class OrderTest {
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError().getCode()).isEqualTo("order.transition.not.allowed");
+    }
+
+    @Test
+    void raisesAssignedEventOnSuccessfulTransition() {
+        val order = newOrder();
+
+        order.markAsAssigned();
+
+        assertThat(order.getDomainEvents()).hasSize(1);
+        assertThat(order.getDomainEvents().get(0)).isInstanceOf(OrderAssignedDomainEvent.class);
+        assertThat(((OrderAssignedDomainEvent) order.getDomainEvents().get(0)).getOrderId()).isEqualTo(order.getId());
+    }
+
+    @Test
+    void raisesCompletedEventOnSuccessfulCompletion() {
+        val order = newOrder();
+        order.markAsAssigned();
+
+        order.markAsCompleted();
+
+        assertThat(order.getDomainEvents()).hasSize(2);
+        val completed = order.getDomainEvents().get(1);
+        assertThat(completed).isInstanceOf(OrderCompletedDomainEvent.class);
+        assertThat(((OrderCompletedDomainEvent) completed).getOrderId()).isEqualTo(order.getId());
+    }
+
+    @Test
+    void raisesNoEventOnFailedTransition() {
+        val order = newOrder();
+
+        order.markAsCompleted();
+
+        assertThat(order.getDomainEvents()).isEmpty();
     }
 
     private Order newOrder() {

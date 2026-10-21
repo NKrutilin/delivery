@@ -15,6 +15,8 @@ import lombok.val;
 import microarch.delivery.Constants;
 import microarch.delivery.core.domain.model.Location;
 import microarch.delivery.core.domain.model.Volume;
+import microarch.delivery.core.domain.model.order.events.OrderAssignedDomainEvent;
+import microarch.delivery.core.domain.model.order.events.OrderCompletedDomainEvent;
 
 import java.util.UUID;
 
@@ -54,11 +56,19 @@ public class Order extends Aggregate<UUID> {
     }
 
     public Result<Order, Error> markAsAssigned() {
-        return transition(OrderStatus.Created, OrderStatus.Assigned);
+        val result = transition(OrderStatus.Created, OrderStatus.Assigned);
+        if (result.isSuccess()) {
+            raiseDomainEvent(new OrderAssignedDomainEvent(this));
+        }
+        return result;
     }
 
     public Result<Order, Error> markAsCompleted() {
-        return transition(OrderStatus.Assigned, OrderStatus.Completed);
+        val result = transition(OrderStatus.Assigned, OrderStatus.Completed);
+        if (result.isSuccess()) {
+            raiseDomainEvent(new OrderCompletedDomainEvent(this));
+        }
+        return result;
     }
 
     private Result<Order, Error> transition(final OrderStatus expectedStatus, final OrderStatus targetStatus) {
