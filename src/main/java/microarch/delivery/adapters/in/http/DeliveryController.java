@@ -20,7 +20,6 @@ import microarch.delivery.core.application.query.GetAllCouriersQuery;
 import microarch.delivery.core.application.query.GetNotCompletedOrdersQuery;
 import microarch.delivery.core.application.query.handler.GetAllCouriersHandler;
 import microarch.delivery.core.application.query.handler.GetNotCompletedOrdersHandler;
-import microarch.delivery.core.domain.model.Location;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -69,12 +68,7 @@ public class DeliveryController {
 
     @PostMapping("/api/v1/couriers/{courierId}/move")
     public ResponseEntity<?> moveCourier(@PathVariable final UUID courierId, @RequestBody final LocationDto request) {
-        val location = Location.create(request.x(), request.y());
-        if (location.isFailure()) {
-            return toBadRequest(location.getError());
-        }
-
-        val result = moveCourierHandler.handle(new MoveCourierCommand(courierId, location.getValue()));
+        val result = moveCourierHandler.handle(new MoveCourierCommand(courierId, request.x(), request.y()));
         if (result.isFailure()) {
             return toErrorResponse(result.getError());
         }
@@ -94,9 +88,9 @@ public class DeliveryController {
 
     @GetMapping("/api/v1/couriers")
     public ResponseEntity<List<CourierResponseDto>> getCouriers() {
-        val couriers = getAllCouriersHandler
-                .handle(new GetAllCouriersQuery()).stream().map(courier -> new CourierResponseDto(courier.id(),
-                        courier.name(), new LocationDto(courier.location().getX(), courier.location().getY())))
+        val couriers = getAllCouriersHandler.handle(new GetAllCouriersQuery()).stream()
+                .map(courier -> new CourierResponseDto(courier.id(), courier.name(),
+                        new LocationDto(courier.x(), courier.y())))
                 .toList();
 
         return ResponseEntity.ok(couriers);
@@ -105,9 +99,7 @@ public class DeliveryController {
     @GetMapping("/api/v1/orders/active")
     public ResponseEntity<List<OrderResponseDto>> getOrders() {
         val orders = getNotCompletedOrdersHandler.handle(new GetNotCompletedOrdersQuery()).stream()
-                .map(order -> new OrderResponseDto(order.id(),
-                        new LocationDto(order.location().getX(), order.location().getY())))
-                .toList();
+                .map(order -> new OrderResponseDto(order.id(), new LocationDto(order.x(), order.y()))).toList();
 
         return ResponseEntity.ok(orders);
     }
@@ -115,11 +107,6 @@ public class DeliveryController {
     private ResponseEntity<?> toErrorResponse(final Error error) {
         val status = isConflict(error) ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(new ErrorResponseDto(status.value(), error.getMessage()));
-    }
-
-    private ResponseEntity<?> toBadRequest(final Error error) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponseDto(HttpStatus.BAD_REQUEST.value(), error.getMessage()));
     }
 
     private boolean isConflict(final Error error) {
