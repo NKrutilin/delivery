@@ -12,14 +12,17 @@ import microarch.delivery.core.ports.GeoService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
 @Component
 public class GeoGrpcAdapter implements GeoService {
 
     private final GeoGrpc.GeoBlockingStub stub;
 
-    public GeoGrpcAdapter(@Value("${geo.host:localhost}") final String host,
-            @Value("${geo.port:5004}") final int port) {
-        stub = GeoGrpc.newBlockingStub(ManagedChannelBuilder.forAddress(host, port).usePlaintext().build());
+    public GeoGrpcAdapter(@Value("${geo.host:localhost}") final String host, @Value("${geo.port:5004}") final int port,
+            @Value("${geo.deadline-ms:2000}") final long deadlineMs) {
+        stub = GeoGrpc.newBlockingStub(ManagedChannelBuilder.forAddress(host, port).usePlaintext().build())
+                .withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
     @Override
