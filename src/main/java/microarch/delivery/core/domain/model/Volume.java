@@ -1,17 +1,23 @@
 package microarch.delivery.core.domain.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import libs.ddd.ValueObject;
 import libs.errs.Error;
 import libs.errs.Guard;
 import libs.errs.Result;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.val;
 
 import java.util.List;
 
+@Embeddable
+@NoArgsConstructor(force = true)
 @Getter
 public class Volume extends ValueObject<Volume> {
 
+    @Column(name = "volume")
     private final int value;
 
     private Volume(int value) {
