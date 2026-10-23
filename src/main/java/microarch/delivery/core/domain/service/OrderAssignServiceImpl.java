@@ -49,7 +49,7 @@ public class OrderAssignServiceImpl implements OrderAssignService {
 
         if (nearestCourier == null) {
             return Result.failure(
-                    Error.of("assign.service.no.couriers", "No courier is available for order " + order.getId()));
+                    Error.of(Constants.ERR_CODE_NO_COURIERS, "No courier is available for order " + order.getId()));
         }
 
         val taken = nearestCourier.takeOrder(order.getId(), order.getVolume(), order.getLocation());
