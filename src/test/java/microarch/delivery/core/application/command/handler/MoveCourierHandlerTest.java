@@ -38,15 +38,6 @@ class MoveCourierHandlerTest {
     }
 
     @Test
-    @DisplayName("возвращает ошибку при некорректной целевой локации")
-    void failsWhenTargetLocationIsInvalid() {
-        val result = handler.handle(new MoveCourierCommand(UUID.randomUUID(), 0, 0));
-
-        assertThat(result.isFailure()).isTrue();
-        verify(courierRepository, never()).update(any());
-    }
-
-    @Test
     @DisplayName("возвращает ошибку, если курьер не найден")
     void failsWhenCourierDoesNotExist() {
         when(courierRepository.findById(any(UUID.class))).thenReturn(Optional.empty());

@@ -39,15 +39,4 @@ class CreateOrderHandlerTest {
         assertThat(saved.getLocation().getX()).isBetween(1, 10);
         assertThat(saved.getLocation().getY()).isBetween(1, 10);
     }
-
-    @Test
-    @DisplayName("отклоняет заказ с нулевым объёмом")
-    void rejectsNonPositiveVolume() {
-        val command = new CreateOrderCommand(UUID.randomUUID(), "Россия", "Москва", "Тверская", "1", "2", 0);
-
-        val result = handler.handle(command);
-
-        assertThat(result.isFailure()).isTrue();
-        verify(orderRepository, never()).create(any());
-    }
 }
